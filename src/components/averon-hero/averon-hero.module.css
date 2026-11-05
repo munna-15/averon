@@ -1,0 +1,761 @@
+/* ==========================================================================
+   AVERON hero
+   - Full-bleed: 100% wide, viewport height minus the site chrome. No outer
+     frame, no grey backdrop, and NO 3D (no perspective / preserve-3d).
+   - Every size is relative to the hero itself (container query units), so the
+     composition scales as one piece: 1cqw = 1% of the hero width.
+   - Layer boxes are percentages of the hero; photos use object-fit: cover so
+     they are never stretched.
+   - Portrait vs landscape is decided HERE, by a container query on the hero
+     (`@container av (max-aspect-ratio: 1 / 1)`), and mirrored into the custom
+     property `--av-portrait` which AveronHero.tsx reads. One source of truth.
+   - Site chrome height: set `--av-chrome` on any ancestor (header + announcement
+     bar, e.g. `--av-chrome: 104px`). Defaults: 64px below 768px, 120px above.
+     Optional overlap with the next section: `--av-overlap` (default 0px).
+   ========================================================================== */
+
+.root {
+  --ink: #141414;
+  --f-display: var(--av-display, var(--font-cormorant, "Bodoni Moda", "Didot", "Bodoni 72", "Playfair Display", Georgia, serif));
+  --f-wide: var(--av-wide, var(--font-manrope, "Archivo", "Inter Display", "Inter", "Helvetica Neue", Arial, sans-serif));
+  --f-body: var(--av-body, var(--font-manrope, "Work Sans", "Inter", "Helvetica Neue", Arial, sans-serif));
+  --av-chrome-h: var(--av-chrome, 64px);
+
+  position: relative;
+  width: 100%;
+  height: calc(100vh - var(--av-chrome-h));
+  height: calc(100svh - var(--av-chrome-h));
+  min-height: 440px;
+  margin-bottom: var(--av-overlap, 0px);
+  overflow: hidden;
+  background: #fff;
+  color: var(--ink);
+  container-type: size;
+  container-name: av;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+  isolation: isolate;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  /* read by AveronHero.tsx; flipped to 1 by the portrait container query */
+  --av-portrait: 0;
+}
+
+/* ------------------------------ layers ----------------------------------- */
+.layer {
+  position: absolute;
+  left: var(--l);
+  top: var(--t);
+  width: var(--w);
+  height: var(--h);
+  font-size: var(--fs, 1.05cqw);
+  line-height: 1.3;
+  visibility: hidden; /* GSAP reveals; slide 01 is revealed below (no flash on SSR) */
+  will-change: transform;
+}
+.layer[data-s="0"] {
+  visibility: visible;
+}
+
+.round {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+.blush,
+.blushSoft,
+.panel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+.blush {
+  background: linear-gradient(215deg, #fde8dc 0%, #fbdff0 42%, #f8d4fb 100%);
+}
+.rect .blush {
+  background: linear-gradient(100deg, #f9d9ff 0%, #fbe0f2 52%, #fde7dd 100%);
+}
+.blushSoft {
+  background: linear-gradient(100deg, #fde6f3, #fdeee5);
+  opacity: 0.7;
+}
+.panel {
+  background: linear-gradient(95deg, #f9dcff 0%, #fbe3f3 45%, #fde8df 100%);
+}
+
+/* ------------------------------ photography ------------------------------ */
+.photo {
+  overflow: hidden;
+  background: #ececec;
+}
+.photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cut img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+.multiply {
+  mix-blend-mode: multiply;
+}
+
+.fallback,
+.fallbackCut {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 8%;
+  font: 500 clamp(8px, 0.85cqw, 12px) / 1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #7a7a7a;
+}
+.fallback {
+  background: repeating-linear-gradient(135deg, #efefef 0 14px, #e6e6e6 14px 28px);
+}
+.fallbackCut {
+  border: 1.5px dashed #bbb;
+  border-radius: 40% 40% 4% 4%;
+  background: rgba(240, 240, 240, 0.55);
+}
+.fallback b,
+.fallbackCut b {
+  display: block;
+  margin-top: 0.4em;
+  color: #222;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+/* ------------------------------ typography ------------------------------- */
+.display {
+  display: block;
+  font-family: var(--f-display);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  font-variant-ligatures: common-ligatures discretionary-ligatures;
+}
+.wide {
+  font-family: var(--f-wide);
+  font-weight: 800;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1;
+}
+.body {
+  font-family: var(--f-body);
+  font-weight: 400;
+}
+.layer p,
+.layer b,
+.layer label {
+  margin: 0;
+  white-space: nowrap;
+}
+.br {
+  display: block;
+}
+
+.spread {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+.spread span {
+  display: inline-block;
+  min-width: 0.55em;
+}
+.spacedLight {
+  display: block;
+  font-family: var(--f-body);
+  font-weight: 400;
+  letter-spacing: 0.9em;
+  color: #222;
+}
+
+.dash {
+  display: block;
+  width: 11.4%;
+  height: 0.22em;
+  margin-bottom: 0.3em;
+  background: var(--ink);
+  font-size: inherit;
+}
+.dashDark {
+  display: block;
+  width: 29px;
+  width: 2.5cqw;
+  height: 0.17em;
+  margin-bottom: 0.7em;
+  background: var(--ink);
+}
+.weekHead .wide {
+  display: block;
+}
+.paraA {
+  font-family: var(--f-body);
+  line-height: 1.38;
+  color: #1c1c1c;
+}
+.paraA p {
+  margin-top: 0.1em;
+}
+.paraB b {
+  display: block;
+  margin-bottom: 0.5em;
+  font-size: 1.12em;
+  font-weight: 600;
+  color: #111;
+}
+.paraB p + p {
+  margin-top: 1.1em;
+}
+.paraB,
+.paraC {
+  line-height: 1.4;
+}
+.strong {
+  font-weight: 700;
+}
+.paraB u,
+.paraA u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.paraBold p {
+  font-weight: 700;
+  line-height: 1.5;
+  color: #111;
+}
+.paraC b {
+  display: block;
+  font-size: 1.12em;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 0.6em;
+}
+
+.vertBox {
+  display: flex;
+  align-items: flex-end;
+}
+.vert {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--f-display);
+  font-weight: 500;
+  line-height: 0.82;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.strike {
+  position: relative;
+}
+.strike::after {
+  content: "";
+  position: absolute;
+  left: -0.26em;
+  right: -0.28em;
+  top: 53%;
+  height: max(1px, 0.014em);
+  background: var(--ink);
+}
+
+.linkBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75em;
+}
+.linkBlock .arrow {
+  width: 54%;
+}
+
+.arrow,
+.arrowL {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 1px;
+  background: var(--ink);
+}
+.layer > .arrow {
+  position: absolute;
+  top: 50%;
+}
+.arrow::after,
+.arrowL::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+}
+.arrow::after {
+  right: -1px;
+  border-left: 6px solid var(--ink);
+}
+.arrowL::before {
+  left: -1px;
+  border-right: 6px solid var(--ink);
+}
+
+/* ---------------------------- badges & misc ------------------------------ */
+.badge {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #111;
+  color: #fff;
+  clip-path: polygon(98.3% 62.9%, 85.4% 85.4%, 62.9% 98.3%, 37.1% 98.3%, 14.6% 85.4%, 1.7% 62.9%, 1.7% 37.1%, 14.6% 14.6%, 37.1% 1.7%, 62.9% 1.7%, 85.4% 14.6%, 98.3% 37.1%);
+  font-family: var(--f-wide);
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 0.62cqw;
+  line-height: 1.12;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.mouse {
+  display: flex;
+  align-items: center;
+  gap: 2.4cqw;
+  height: 100%;
+}
+.mouse svg {
+  flex: 0 0 auto;
+  width: 0.95cqw;
+  height: 1.5cqw;
+  margin-left: 0.8cqw;
+}
+.mouse i {
+  display: block;
+  flex: 0 0 6.5cqw;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.social {
+  width: 100%;
+  height: 100%;
+  color: var(--ink);
+  /* measured: 0.367°/frame ≈ 22°/s clockwise → 16.4 s per revolution */
+  animation: avSpin 16.4s linear infinite;
+}
+.badgeSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ringText {
+  font-family: var(--f-wide);
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 11.5px;
+  fill: currentColor;
+}
+@keyframes avSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------ newsletter ------------------------------- */
+.nlHead .wide {
+  display: block;
+  line-height: 0.92;
+}
+.nlForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  width: 100%;
+}
+.nlForm label {
+  font-weight: 600;
+  color: #111;
+}
+.nlForm > div {
+  display: flex;
+  gap: 0.9em;
+  width: 100%;
+}
+.nlForm input {
+  /* takes the row minus the button, so the pair never overflows the form */
+  flex: 1 1 0;
+  min-width: 0;
+  height: 3.25cqw;
+  padding: 0 1em;
+  border: 1px solid #202020;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 1em;
+  color: #111;
+  outline-offset: 2px;
+}
+.nlForm button {
+  flex: 0 0 auto;
+  min-width: 8.6cqw;
+  height: 3.25cqw;
+  border: 0;
+  border-radius: 2px;
+  background: #151515;
+  color: #fff;
+  font-size: 0.86em;
+  cursor: pointer;
+}
+.rewind {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7em;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.rewind .arrowL {
+  width: 100%;
+}
+
+/* ================================ UI chrome ============================== */
+.ui {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  font-family: var(--f-body);
+}
+.ui > * {
+  position: absolute;
+  pointer-events: auto;
+}
+.ui > nav {
+  inset: 0;
+  pointer-events: none;
+}
+.ui > nav a {
+  pointer-events: auto;
+}
+.ui a,
+.ui button {
+  color: var(--ink);
+  text-decoration: none;
+}
+.logo {
+  left: 3.5%;
+  top: 6%;
+  transform: translateY(-50%);
+  font-family: var(--f-wide);
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 1.28cqw;
+  letter-spacing: 0.12em;
+}
+.link {
+  position: absolute;
+  top: 7.2%;
+  transform: translateY(-50%);
+  font-size: 0.95cqw;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 0.5em 0;
+}
+.link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.5px;
+  background: var(--ink);
+}
+.share {
+  left: 85.8%;
+  top: 7.6%;
+  width: 1.6cqw;
+  transform: translate(0, -50%);
+}
+.burger {
+  right: 3.7%;
+  top: 7.7%;
+  width: 3cqw;
+  height: 1.6cqw;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translateY(-50%);
+}
+.burger::before,
+.burger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+}
+.burger::before {
+  top: 0.3cqw;
+}
+.burger::after {
+  top: 1cqw;
+}
+
+.chev {
+  top: 86.3%;
+  width: 3cqw;
+  height: 3cqw;
+  padding: 0;
+  border: 0;
+  background: none;
+  margin: -1.5cqw 0 0 -1.5cqw;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.chev svg {
+  width: 0.7cqw;
+  height: 1.1cqw;
+}
+.chevPrev {
+  left: 75.9%;
+}
+.chevNext {
+  left: 81.3%;
+}
+
+.counter {
+  left: 84.6%;
+  top: 82.4%;
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--f-wide);
+  font-weight: 800;
+  font-stretch: 125%;
+  font-size: 4.35cqw;
+  line-height: 1;
+  pointer-events: none;
+}
+.star {
+  margin-top: -0.04em;
+  margin-right: 0.04em;
+  font-size: 0.95em;
+}
+.win {
+  height: 1em;
+  overflow: hidden;
+}
+.strip {
+  display: block;
+}
+.strip span {
+  display: block;
+  height: 1em;
+  line-height: 1;
+}
+
+.socials {
+  top: 93.8%;
+  left: 84.6%;
+  width: 10.8%;
+  height: 2%;
+  display: flex;
+  font-size: 0.82cqw;
+  font-weight: 600;
+}
+.socials a {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  padding: 0.5em;
+  margin-top: -0.5em;
+}
+
+.track {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: rgba(235, 190, 240, 0.35);
+  pointer-events: none;
+}
+.progress {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  /* measured ≈ 5–6 px at the 1168 px reference width (0.47cqw ≈ 5.5 px) */
+  height: max(3px, 0.47cqw);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, #f1b6f2, #f8cfe6 60%, #fbd9cf);
+  pointer-events: none;
+}
+
+.pill {
+  left: 63.3%;
+  top: 86.3%;
+  width: 3.9cqw;
+  height: 3.9cqw;
+  margin-top: -1.95cqw;
+  border: 3px solid rgba(34, 34, 34, 0.62);
+  border-radius: 999px;
+  transform-origin: 100% 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ============================ PORTRAIT / MOBILE =========================== *
+ * A dedicated composition (not a shrunken desktop): every layer has its own
+ * portrait box in layers.tsx (designed on a 390 × 700 canvas), the Newsletter
+ * panel fills the whole stage, and the chrome moves to the bottom edge.
+ * Applies to any hero that is not wider than tall (phones AND tablet portrait).
+ * Keep the ratio in sync with PORTRAIT_FALLBACK_ASPECT in AveronHero.tsx.
+ * ========================================================================= */
+@container av (max-aspect-ratio: 1 / 1) {
+  .scene {
+    --av-portrait: 1;
+  }
+  .layer {
+    left: var(--ml, var(--l));
+    top: var(--mt, var(--t));
+    width: var(--mw, var(--w));
+    height: var(--mh, var(--h));
+    font-size: var(--mfs, var(--fs, 3.4cqw));
+  }
+  .layer[data-hm] {
+    display: none;
+  }
+  .layer p,
+  .layer b,
+  .layer label {
+    white-space: normal;
+  }
+  .br {
+    display: none;
+  }
+  .badge {
+    font-size: min(1.9cqw, 1.06cqh);
+  }
+  .mouse {
+    display: none;
+  }
+  .dashDark {
+    width: 8cqw;
+  }
+  .nlForm input,
+  .nlForm button {
+    height: min(11cqw, 6.1cqh);
+  }
+  .nlForm button {
+    min-width: min(21cqw, 11.7cqh);
+  }
+  .ringText {
+    font-size: 11px;
+  }
+  .progress {
+    height: max(3px, 0.8cqw);
+  }
+
+  .logo {
+    left: 6%;
+    top: 4.4%;
+    font-size: 4.4cqw;
+  }
+  .link,
+  .share {
+    display: none;
+  }
+  .burger {
+    right: 6%;
+    top: 4.5%;
+    width: 8cqw;
+    height: 4cqw;
+  }
+  .burger::before {
+    top: 0.9cqw;
+  }
+  .burger::after {
+    top: 2.7cqw;
+  }
+  .chev {
+    top: 94.5%;
+    width: 10cqw;
+    height: 10cqw;
+    margin: -5cqw 0 0 -5cqw;
+  }
+  .chev svg {
+    width: 2.2cqw;
+    height: 3.6cqw;
+  }
+  .chevPrev {
+    left: 9%;
+  }
+  .chevNext {
+    left: 22%;
+  }
+  .counter {
+    left: auto;
+    right: 6%;
+    top: auto;
+    bottom: 3.6%;
+    font-size: min(11cqw, 6.1cqh);
+  }
+  .socials {
+    display: none;
+  }
+  .pill {
+    left: 38%;
+    top: 94.5%;
+    width: 11cqw;
+    height: 11cqw;
+    margin-top: -5.5cqw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .social {
+    animation: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .root {
+    --av-chrome-h: var(--av-chrome, 120px);
+  }
+}

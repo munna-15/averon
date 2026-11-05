@@ -1,26 +1,154 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Brand palette. `static` keeps every token available as a CSS variable. */
+@theme static {
+  --color-ivory: #fff;
+  --color-ivory-soft: #fff;
+  --color-ink: #292823;
+  --color-stone: #d9d0c2;
+  --color-taupe: #a49a89;
+  --color-muted: #77736b;
+  --color-line: #e4ded4;
 }
 
+/* Font families resolve from the next/font CSS variables set on <html>. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display:
+    var(--font-cormorant), "Cormorant Garamond", Georgia, "Times New Roman",
+    serif;
+  --font-sans:
+    var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+
+  --spacing-gutter: var(--page-gutter);
+  --spacing-section: var(--section-spacing);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Type scale: fluid sizes, used as text-display-xl, text-display-lg, etc. */
+@theme {
+  --text-display-xl: clamp(3rem, 1.9rem + 4.6vw, 6.5rem);
+  --text-display-xl--line-height: 0.98;
+  --text-display-xl--letter-spacing: -0.02em;
+
+  --text-display-lg: clamp(2.5rem, 1.7rem + 3.2vw, 4.75rem);
+  --text-display-lg--line-height: 1.02;
+  --text-display-lg--letter-spacing: -0.015em;
+
+  --text-headline: clamp(1.875rem, 1.45rem + 1.7vw, 3rem);
+  --text-headline--line-height: 1.1;
+  --text-headline--letter-spacing: -0.01em;
+
+  --text-title: clamp(1.375rem, 1.2rem + 0.7vw, 1.75rem);
+  --text-title--line-height: 1.2;
+
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.16em;
+}
+
+/* Layout rhythm. Exposed as px-gutter, gap-gutter, py-section, etc. */
+:root {
+  --page-gutter: clamp(1.25rem, 0.75rem + 2.2vw, 3rem);
+  --section-spacing: clamp(4.5rem, 2.5rem + 8vw, 9.5rem);
+}
+
+@layer base {
+  html {
+    @apply bg-ivory text-ink;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply min-h-svh bg-ivory font-sans text-base leading-relaxed text-ink antialiased;
+  }
+
+  ::selection {
+    background-color: var(--color-stone);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-4 outline-ink;
+  }
+
+  /* Reduced motion: neutralise CSS animation and transitions globally.
+     GSAP animations must be gated separately (see src/lib/motion/config.ts). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Centered page container with the shared gutter. */
+@utility container-editorial {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}
+
+/* Small functional label (navigation, metadata, captions). */
+@utility eyebrow {
+  @apply font-sans text-eyebrow font-medium uppercase;
+}
+
+/* Comfortable reading measure for body copy. */
+@utility measure {
+  max-width: 38rem;
+}
+
+@keyframes product-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+
+
+/* Premium global scrollbar */
+@layer base {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #b8afa1 #292823;
+  }
+
+  html::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: #292823;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: #b8afa1;
+    border: 2px solid #292823;
+    border-radius: 999px;
+    transition: background-color 250ms ease;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: #d9d0c2;
+  }
+
+  html::-webkit-scrollbar-corner {
+    background: #292823;
+  }
+
+  @media (max-width: 767px) {
+    html {
+      scrollbar-width: none;
+    }
+
+    html::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
