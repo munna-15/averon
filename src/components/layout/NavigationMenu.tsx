@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowUpRight, ChevronDown, PackageSearch } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/cn";
 import { MOTION } from "@/lib/motion/config";
@@ -48,8 +48,6 @@ const GATE_OPEN_DURATION = 1.8;
 const GATE_EASE = "power3.out";
 const GATE_STAGGER = 0.045;
 
-// Closing: mirror of the opening order (white, 2, 3, 4, 5), slightly faster,
-// with a balanced ease so it starts at once and never ends abruptly.
 const GATE_CLOSE_DURATION = 1.45;
 const GATE_CLOSE_EASE = "power1.inOut";
 const WHITE_PANEL_CLOSE_DURATION = 1.2;
@@ -67,6 +65,9 @@ const WHITE_PANEL_EASE = "power2.out";
 const MOBILE_REVEAL_DURATION = 0.48;
 const MOBILE_CLOSE_SPEED = 1.25;
 const MOBILE_STAGGER = 0.045;
+
+const DARK_PANEL_BACKGROUND = "rgba(0, 0, 0, 0.42)";
+const DARK_PANEL_EXPANDED_BACKGROUND = "#FFFFFF";
 
 function inertEverythingExcept(element: HTMLElement): () => void {
   const changed: Element[] = [];
@@ -148,10 +149,7 @@ function NavigationMenuContent() {
       setOpen(true);
     });
 
-    // Stop an in-progress close before reopening.
     closeTimelineRef.current?.pause();
-
-    // Restart opening from the current visual state.
     timelineRef.current?.invalidate().timeScale(1).restart();
   }, []);
 
@@ -212,9 +210,6 @@ function NavigationMenuContent() {
 
       /*
        * DESKTOP: FIVE-PANEL ACCORDION GATE
-       *
-       * Opening: 5 -> 4 -> 3 -> 2 -> 1
-       * Closing: 1 -> 2 -> 3 -> 4 -> 5
        */
 
       mm.add(DESKTOP_QUERY, () => {
@@ -263,13 +258,6 @@ function NavigationMenuContent() {
 
         updateGate();
 
-        /*
-         * Returns the whole gate to its fully-closed starting state:
-         * every fold collapsed, track parked at -20%, content hidden.
-         * Used when a close finishes and whenever the menu settles in the
-         * closed state, so a later opening always starts from clean values
-         * (even if the previous close was interrupted by a reopen).
-         */
         const resetGate = () => {
           gateProgress.forEach((progress) => {
             progress.value = 0;
@@ -288,11 +276,6 @@ function NavigationMenuContent() {
         };
 
         gateResetRef.current = resetGate;
-
-        /*
-         * ORIGINAL OPENING TIMELINE
-         * Its animation values and timing are unchanged.
-         */
 
         const timeline = gsap.timeline({
           paused: true,
@@ -348,23 +331,6 @@ function NavigationMenuContent() {
 
         timeline.eventCallback("onUpdate", updateGate);
 
-        /*
-         * DESKTOP CLOSE TIMELINE
-         *
-         * Independent of the opening timeline; invalidate() before each run
-         * re-reads every tween's start value from the gate's current state,
-         * so closing always begins from what is actually on screen.
-         *
-         * Closing order is the mirror of the opening start order:
-         * White panel -> Panel 2 -> Panel 3 -> Panel 4 -> Panel 5
-         * (same stagger as opening, each fold on the same balanced ease).
-         *
-         * The track is deliberately NOT animated here. It is one fold wide
-         * (-20%) and carries all five folds; sliding it while they are still
-         * open pushed the white panel off-screen in a fraction of a second.
-         * It is parked at -20% only after everything has collapsed.
-         */
-
         const closeTimeline = gsap.timeline({
           paused: true,
           onComplete: () => {
@@ -373,7 +339,6 @@ function NavigationMenuContent() {
           },
         });
 
-        // White panel closes first, starting immediately.
         closeTimeline.to(
           gateProgress[0],
           {
@@ -384,7 +349,6 @@ function NavigationMenuContent() {
           0,
         );
 
-        // Dark panels follow in order: 2, 3, 4, 5.
         gateProgress.forEach((progress, index) => {
           if (index === 0) return;
 
@@ -399,7 +363,6 @@ function NavigationMenuContent() {
           );
         });
 
-        // Menu content fades out in the same order as the folds.
         closeTimeline.to(
           gateContents,
           {
@@ -542,7 +505,6 @@ function NavigationMenuContent() {
       }
 
       closeTimelineRef.current?.pause();
-
       timeline?.invalidate().timeScale(1).restart();
 
       return;
@@ -558,17 +520,12 @@ function NavigationMenuContent() {
 
       if (closeTimeline && timeline && shown) {
         timeline.pause();
-
         closeTimeline.invalidate().restart();
-
         return;
       }
     }
 
     timeline?.pause(0);
-
-    // Settle the desktop gate in its clean closed state so the next opening
-    // never inherits stale values from an interrupted close.
     gateResetRef.current?.();
 
     const id = window.setTimeout(() => {
@@ -810,7 +767,7 @@ function NavigationMenuContent() {
         aria-hidden={!open}
         className="invisible fixed inset-0 z-0 data-[state=closing]:pointer-events-none data-[state=closing]:visible data-[state=open]:visible"
       >
-        <div className="relative h-full overflow-hidden overscroll-none bg-[#F4F0E8] lg:bg-transparent">
+        <div className="relative h-full overflow-hidden overscroll-none bg-[#FFFFFF] lg:bg-transparent">
           {/* DESKTOP: CONNECTED FIVE-PANEL ACCORDION GATE */}
 
           <nav
@@ -819,11 +776,11 @@ function NavigationMenuContent() {
             className="relative hidden h-full min-h-[100svh] overflow-hidden lg:block"
           >
             <div className="absolute inset-0 flex h-full min-h-[100svh] w-full">
-              {/* PANEL 1: WHITE PANEL */}
+              {/* PANEL 1: PURE WHITE PANEL */}
 
               <section
                 data-gate-panel
-                className="relative flex h-full min-h-[100svh] shrink-0 flex-col justify-center overflow-hidden bg-[#F4F0E8] px-6 pt-32 pb-12 xl:px-10"
+                className="relative flex h-full min-h-[100svh] shrink-0 flex-col justify-center overflow-hidden bg-[#FFFFFF] px-6 pt-32 pb-12 xl:px-10"
                 style={{
                   width: `${GATE_PANEL_WIDTH}%`,
                   boxShadow: "inset -1px 0 rgba(41,40,35,0.16)",
@@ -856,7 +813,6 @@ function NavigationMenuContent() {
                     ))}
                   </ul>
 
-
                   <span className="absolute right-6 bottom-10 left-6 h-px bg-[#292823]/35 xl:right-10 xl:left-10" />
 
                   <span className="absolute bottom-4 left-6 text-[0.58rem] tracking-[0.2em] text-[#77736B] uppercase xl:left-10">
@@ -885,11 +841,13 @@ function NavigationMenuContent() {
                     style={{
                       width: `${GATE_PANEL_WIDTH}%`,
                       backgroundColor: isExpanded
-                        ? "rgba(10, 10, 10, 0.20)"
-                        : "rgba(10, 10, 10, 0.24)",
-                      boxShadow:
-                        "inset -1px 0 rgba(255,255,255,0.16), inset 1px 0 rgba(0,0,0,0.20)",
-                      transition: "background-color 400ms ease",
+                        ? DARK_PANEL_EXPANDED_BACKGROUND
+                        : DARK_PANEL_BACKGROUND,
+                      boxShadow: isExpanded
+                        ? "inset -1px 0 rgba(41,40,35,0.12), inset 1px 0 rgba(41,40,35,0.08)"
+                        : "inset -1px 0 rgba(255,255,255,0.16), inset 1px 0 rgba(0,0,0,0.20)",
+                      transition:
+                        "background-color 550ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 550ms ease",
                       clipPath: GATE_CLIP_CLOSED,
                       willChange: "transform, clip-path",
                     }}
@@ -920,20 +878,25 @@ function NavigationMenuContent() {
                                 >
                                   <span
                                     className={cn(
-                                      "font-display text-[clamp(1.35rem,2vw,2.35rem)] leading-[1.05] font-normal text-white",
-                                      "transition-colors duration-500 hover:text-white/65",
-                                      "relative after:absolute after:-bottom-2 after:left-0 after:h-px after:w-0 after:bg-white/80 after:transition-[width] after:duration-500 hover:after:w-full",
+                                      "font-display text-[clamp(1.35rem,2vw,2.35rem)] leading-[1.05] font-normal",
+                                      "transition-colors duration-500",
+                                      expanded
+                                        ? "text-[#292823]"
+                                        : "text-white hover:text-white/65",
+                                      "relative after:absolute after:-bottom-2 after:left-0 after:h-px after:w-0 after:bg-current after:transition-[width] after:duration-500 hover:after:w-full",
                                     )}
                                   >
                                     {link.label}
                                   </span>
 
                                   <ChevronDown
-                                    size={17}
-                                    strokeWidth={1.2}
+                                    size={22}
+                                    strokeWidth={2.2}
                                     className={cn(
-                                      "mt-1 shrink-0 text-white/75 transition-transform duration-500",
-                                      expanded && "rotate-180",
+                                      "mt-0.5 shrink-0 transition-[transform,color] duration-500",
+                                      expanded
+                                        ? "rotate-180 text-[#292823]"
+                                        : "text-white",
                                     )}
                                   />
                                 </button>
@@ -941,7 +904,7 @@ function NavigationMenuContent() {
                                 <div
                                   id={submenuId}
                                   hidden={!expanded}
-                                  className="mt-6 border-t border-white/40 pt-5"
+                                  className="mt-6 border-t border-[#292823]/20 pt-5"
                                 >
                                   <ul className="flex flex-col gap-4">
                                     {link.children?.map((child) => (
@@ -954,7 +917,7 @@ function NavigationMenuContent() {
                                               ? "page"
                                               : undefined
                                           }
-                                          className="inline-flex text-[0.68rem] font-medium tracking-[0.12em] text-white/80 uppercase transition-colors duration-300 hover:text-white"
+                                          className="inline-flex text-[0.68rem] font-medium tracking-[0.12em] text-[#55534D] uppercase transition-colors duration-300 hover:text-[#292823]"
                                         >
                                           {child.label}
                                         </Link>
@@ -976,7 +939,7 @@ function NavigationMenuContent() {
 
           {/* MOBILE / TABLET: SOLID PREMIUM MENU */}
 
-          <div className="flex min-h-full flex-col bg-[#F4F0E8] lg:hidden">
+          <div className="flex min-h-full flex-col bg-[#FFFFFF] lg:hidden">
             <nav
               aria-label="Primary"
               className="px-gutter pt-28 pb-12 md:pt-32"
@@ -1008,10 +971,10 @@ function NavigationMenuContent() {
                             </span>
 
                             <ChevronDown
-                              size={18}
-                              strokeWidth={1.2}
+                              size={22}
+                              strokeWidth={2.2}
                               className={cn(
-                                "shrink-0 text-[#292823]/70 transition-transform duration-300",
+                                "shrink-0 text-[#292823]/80 transition-transform duration-300",
                                 expanded && "rotate-180",
                               )}
                             />
